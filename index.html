@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usage-headroom gate — FAIL (draft)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%231e2430'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --ink: #1c1915;
+    --muted: #5c564c;
+    --line: #ddd4c6;
+    --paper: #ebe4d8;
+    --card: #fbf8f3;
+    --navy: #1e2430;
+    --gold: #e6c27a;
+    --skip: #8a4b12;
+    --skip-bg: #f8ecdc;
+    --start: #1d5b38;
+    --start-bg: #e7f2ea;
+    --alert: #6d2f3a;
+    --alert-bg: #f8e8e6;
+    --ahead: #8a4b12;
+    --track: #e4dccf;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Avenir Next", "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  button, input { font: inherit; color: inherit; }
+  .banner {
+    background: var(--navy);
+    color: #f6f1e7;
+    padding: 14px 20px;
+  }
+  .banner-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    gap: 16px;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .fail-top {
+    background: #6d2f3a;
+    color: #fbf8f3;
+    text-align: center;
+    padding: 10px 16px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-size: 14px;
+  }
+  .fail-top span { letter-spacing: 0.18em; }
+  .stamp {
+    display: inline-block;
+    letter-spacing: 0.14em;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--navy);
+    background: var(--gold);
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+  .banner p { margin: 6px 0 0; max-width: 70ch; color: #ddd4c4; font-size: 14px; }
+  main { max-width: 1120px; margin: 0 auto; padding: 28px 20px 64px; }
+  h1 {
+    font-family: Georgia, "Iowan Old Style", Palatino, serif;
+    font-weight: 500;
+    font-size: 40px;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin: 8px 0 8px;
+  }
+  .lede { max-width: 68ch; margin: 0 0 22px; color: var(--muted); }
+  h2 {
+    font-family: Georgia, "Iowan Old Style", Palatino, serif;
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0 0 12px;
+  }
+  h3 { margin: 0; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 16px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+  }
+  .kicker {
+    margin: 0 0 8px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .percent {
+    font-family: Georgia, "Iowan Old Style", Palatino, serif;
+    font-size: 72px;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    margin: 4px 0 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meter { height: 10px; background: var(--track); border-radius: 99px; overflow: hidden; }
+  .meter > span { display: block; height: 100%; background: var(--navy); border-radius: 99px; }
+  .meter.ahead > span { background: var(--ahead); }
+  .facts { list-style: none; padding: 0; margin: 14px 0 0; }
+  .facts li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .facts span { color: var(--muted); }
+  .pace-note { margin: 10px 0 0; font-size: 14px; }
+  .pace-note.ahead { color: var(--ahead); }
+  .pace-note.even { color: var(--start); }
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: "IBM Plex Mono", "ui-monospace", "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    background: #221e1a;
+    color: #f3eadc;
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .controls { margin-top: 16px; }
+  .slider { margin: 12px 0; }
+  .slider label { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+  input[type="range"] { width: 100%; margin-top: 6px; accent-color: var(--navy); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  button {
+    background: var(--navy);
+    color: #f6f1e7;
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+  .section { margin-top: 28px; }
+  .routines { display: grid; gap: 12px; }
+  .routine header { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .badge {
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 3px 8px;
+    background: #ece6dc;
+  }
+  .badge.essential { background: #dceadf; color: var(--start); }
+  .badge.optional { background: #f3e6d4; color: var(--skip); }
+  .schedule { margin: 6px 0 10px; color: var(--muted); font-size: 14px; }
+  .gate { display: grid; gap: 8px; margin: 0 0 10px; }
+  .check { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 15px; }
+  input[type="number"] {
+    width: 4.2rem;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 4px 6px;
+  }
+  .preview { margin: 0 0 8px; font-size: 14px; }
+  .preview.skip { color: var(--skip); }
+  .preview.start { color: var(--start); }
+  .history { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .history li, .alerts li {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .history li p, .alerts li p { margin: 4px 0 0; }
+  .history .skip, .alerts li { background: var(--skip-bg); }
+  .history .start { background: var(--start-bg); }
+  .history .empty, .alerts .empty {
+    background: transparent;
+    color: var(--muted);
+    padding-left: 0;
+  }
+  .row-top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .meta { color: var(--muted); }
+  .alert-toggles { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+  .split { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 16px; }
+  .scope {
+    margin-top: 22px;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  @media (max-width: 800px) {
+    h1 { font-size: 32px; }
+    .percent { font-size: 56px; }
+    .grid, .split { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="fail-top"><span>FAIL</span> · Live product fails cases 1–7 · Draft only · No sign-in</div>
+  <header class="banner">
+    <div class="banner-inner">
+      <div>
+        <span class="stamp">FAIL · Draft</span>
+        <p>Grok Bot does not ship this read or this gate. Live product FAIL on cases 1–7. Nothing on this page is your account, and nothing here calls Cursor.</p>
+      </div>
+    </div>
+  </header>
+  <main>
+    <h1>Usage-headroom gate</h1>
+    <p class="lede">A routine can be told to start only when the included weekly pool is under a limit the owner sets, and to wait when that pool is ahead of an even week. The number it checks is the same weekly percent and reset clock as Settings → Usage.</p>
+
+    <div class="grid">
+      <section class="card" aria-labelledby="usage-heading">
+        <p class="kicker" id="usage-heading">Settings → Usage</p>
+        <p class="percent" id="used-readout">8%</p>
+        <div class="meter" id="meter"><span id="meter-fill" style="width:8%"></span></div>
+        <ul class="facts">
+          <li><span>Included pool</span><strong>Weekly usage</strong></li>
+          <li><span>Resets</span><strong id="reset-readout"></strong></li>
+          <li><span>Time until reset</span><strong id="until-readout"></strong></li>
+          <li><span>Week elapsed</span><strong id="elapsed-readout"></strong></li>
+        </ul>
+        <p class="pace-note" id="pace-note"></p>
+        <div class="controls">
+          <div class="slider">
+            <label for="used">Weekly usage <strong id="used-label">8%</strong></label>
+            <input id="used" type="range" min="0" max="100" step="1" value="8">
+          </div>
+          <div class="slider">
+            <label for="asof">Reading taken <strong id="asof-label"></strong></label>
+            <input id="asof" type="range" min="0" max="10080" step="15" value="60">
+          </div>
+          <div class="actions">
+            <button type="button" id="fire">Fire due routines</button>
+            <button type="button" id="play" class="secondary">Play next sample point</button>
+            <button type="button" id="replay" class="secondary">Replay sample week</button>
+            <button type="button" id="clear" class="secondary">Clear history</button>
+          </div>
+        </div>
+      </section>
+      <section class="card" aria-labelledby="read-heading">
+        <p class="kicker" id="read-heading">Bot read at fire time</p>
+        <p class="lede" style="margin-bottom:10px">A routine reads this object. It is the Settings card, not a guess written into the prompt.</p>
+        <pre id="json"></pre>
+      </section>
+    </div>
+
+    <section class="section">
+      <h2>Routines</h2>
+      <p class="lede">The gate is checked when a routine is due, before a run starts. A skip is written on that routine and does not spend weekly usage. An essential routine with no gate still starts.</p>
+      <div class="routines" id="routines">
+        <article class="card routine" data-id="margin" data-name="Margin monitor">
+          <header>
+            <h3>Margin monitor</h3>
+            <span class="badge essential">Essential</span>
+          </header>
+          <p class="schedule">Every day at 08:00 UTC. Leave the gate off so a busy week cannot hold it.</p>
+          <div class="gate">
+            <label class="check"><input type="checkbox" data-gate="ceiling-on"> Run only when weekly usage is under <input type="number" data-gate="ceiling" value="60" min="1" max="100" disabled> %</label>
+            <label class="check"><input type="checkbox" data-gate="days-on" disabled> and at least <input type="number" data-gate="days" value="2" min="1" max="7" disabled> days until reset</label>
+            <label class="check"><input type="checkbox" data-gate="pace"> Hold when usage is ahead of even pace</label>
+          </div>
+          <p class="preview" data-preview></p>
+          <ol class="history" data-history></ol>
+        </article>
+        <article class="card routine" data-id="statements" data-name="Statement download">
+          <header>
+            <h3>Statement download</h3>
+            <span class="badge optional">Optional</span>
+          </header>
+          <p class="schedule">Weekdays at 07:30 UTC. Uses spare capacity only.</p>
+          <div class="gate">
+            <label class="check"><input type="checkbox" data-gate="ceiling-on" checked> Run only when weekly usage is under <input type="number" data-gate="ceiling" value="60" min="1" max="100"> %</label>
+            <label class="check"><input type="checkbox" data-gate="days-on" checked> and at least <input type="number" data-gate="days" value="2" min="1" max="7"> days until reset</label>
+            <label class="check"><input type="checkbox" data-gate="pace"> Hold when usage is ahead of even pace</label>
+          </div>
+          <p class="preview" data-preview></p>
+          <ol class="history" data-history></ol>
+        </article>
+        <article class="card routine" data-id="research" data-name="Browser research">
+          <header>
+            <h3>Browser research</h3>
+            <span class="badge optional">Optional</span>
+          </header>
+          <p class="schedule">Every day at 18:00 UTC. Holds while this week is ahead of even pace.</p>
+          <div class="gate">
+            <label class="check"><input type="checkbox" data-gate="ceiling-on"> Run only when weekly usage is under <input type="number" data-gate="ceiling" value="60" min="1" max="100" disabled> %</label>
+            <label class="check"><input type="checkbox" data-gate="days-on" disabled> and at least <input type="number" data-gate="days" value="2" min="1" max="7" disabled> days until reset</label>
+            <label class="check"><input type="checkbox" data-gate="pace" checked> Hold when usage is ahead of even pace</label>
+          </div>
+          <p class="preview" data-preview></p>
+          <ol class="history" data-history></ol>
+        </article>
+      </div>
+    </section>
+
+    <section class="section split">
+      <div class="card">
+        <h2>Threshold alerts</h2>
+        <p class="lede">Choose the crossings. Each one is delivered once, then stays quiet until usage falls back under it or the week resets. A routine run does not send the alert again.</p>
+        <div class="alert-toggles" id="alert-toggles">
+          <label class="check"><input type="checkbox" data-threshold="50" checked> 50%</label>
+          <label class="check"><input type="checkbox" data-threshold="75" checked> 75%</label>
+          <label class="check"><input type="checkbox" data-threshold="90" checked> 90%</label>
+        </div>
+        <p id="alert-tally" class="meta"></p>
+        <ol class="alerts" id="alerts"></ol>
+      </div>
+      <div class="card">
+        <h2>What a skip records</h2>
+        <p class="lede">History on the phone today is Running, Succeeded, or Failed. This draft adds Skipped, with the reason and the usage percent seen, and it does that without starting the run.</p>
+        <ul class="facts">
+          <li><span>Started</span><strong id="count-start">0</strong></li>
+          <li><span>Skipped</span><strong id="count-skip">0</strong></li>
+          <li><span>Usage spent by skips</span><strong>None</strong></li>
+        </ul>
+      </div>
+    </section>
+
+    <p class="scope">Out of scope on this page: usage split by bot, by category, or by routine. Those views are a separate request. This draft does not price anything, pause the whole fleet, or change the weekly pool.</p>
+  </main>
+  <script src="gate.js"></script>
+  <script>
+    const G = window.HeadroomGate;
+    const RESETS = "2026-10-14T09:00:00.000Z";
+    const PERIOD_START = Date.parse(RESETS) - G.WEEK_MS;
+    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const MOMENTS = [
+      { asOf: "2026-10-07T20:00:00.000Z", used: 3 },
+      { asOf: "2026-10-08T08:00:00.000Z", used: 22 },
+      { asOf: "2026-10-10T08:00:00.000Z", used: 48 },
+      { asOf: "2026-10-10T16:00:00.000Z", used: 55 },
+      { asOf: "2026-10-11T07:30:00.000Z", used: 64 },
+      { asOf: "2026-10-13T08:00:00.000Z", used: 81 },
+      { asOf: "2026-10-13T20:00:00.000Z", used: 91 },
+      { asOf: "2026-10-13T20:15:00.000Z", used: 91 }
+    ];
+
+    const state = {
+      used: 8,
+      asOfMs: PERIOD_START + 60 * 60 * 1000,
+      latches: G.freshLatches([50, 75, 90], 8),
+      alerts: [],
+      firesAtOrAbove: { 50: 0, 75: 0, 90: 0 },
+      moment: 0,
+      starts: 0,
+      skips: 0
+    };
+
+    function formatUtc(ms) {
+      const d = new Date(ms);
+      const hh = String(d.getUTCHours()).padStart(2, "0");
+      const mm = String(d.getUTCMinutes()).padStart(2, "0");
+      return WEEKDAYS[d.getUTCDay()] + ", " + d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear() + ", " + hh + ":" + mm + " UTC";
+    }
+
+    function enabledThresholds() {
+      return [50, 75, 90].filter((t) => document.querySelector('[data-threshold="' + t + '"]').checked);
+    }
+
+    function snapshot() {
+      return G.readSnapshot({
+        usedPercent: state.used,
+        asOf: new Date(state.asOfMs).toISOString(),
+        resetsAt: RESETS
+      });
+    }
+
+    function readConfig(article) {
+      const ceilingOn = article.querySelector('[data-gate="ceiling-on"]').checked;
+      const daysOn = ceilingOn && article.querySelector('[data-gate="days-on"]').checked;
+      const ceiling = Number(article.querySelector('[data-gate="ceiling"]').value);
+      const days = Number(article.querySelector('[data-gate="days"]').value);
+      if (ceilingOn && (!Number.isInteger(ceiling) || ceiling < 1 || ceiling > 100)) {
+        return { error: "Set weekly usage to a whole number from 1 to 100." };
+      }
+      if (daysOn && (!Number.isInteger(days) || days < 1 || days > 7)) {
+        return { error: "Set days until reset to a whole number from 1 to 7." };
+      }
+      return {
+        id: article.dataset.id,
+        usageCeiling: ceilingOn ? ceiling : null,
+        minDaysUntilReset: daysOn ? days : null,
+        paceHold: article.querySelector('[data-gate="pace"]').checked
+      };
+    }
+
+    function syncGateInputs(article) {
+      const ceilingOn = article.querySelector('[data-gate="ceiling-on"]').checked;
+      const daysOn = article.querySelector('[data-gate="days-on"]');
+      article.querySelector('[data-gate="ceiling"]').disabled = !ceilingOn;
+      daysOn.disabled = !ceilingOn;
+      article.querySelector('[data-gate="days"]').disabled = !ceilingOn || !daysOn.checked;
+      if (!ceilingOn) daysOn.checked = false;
+    }
+
+    function setUsed(next) {
+      const prev = state.used;
+      state.used = next;
+      const enabled = enabledThresholds();
+      const noted = G.noteCrossings(prev, next, enabled, state.latches, new Date(state.asOfMs).toISOString());
+      enabled.forEach((t) => {
+        state.latches[String(t)] = noted.latches[String(t)];
+      });
+      noted.alerts.forEach((alert) => state.alerts.push(alert));
+    }
+
+    function renderUsage() {
+      const shot = snapshot();
+      document.getElementById("used-readout").textContent = G.formatPercent(shot.usedPercent);
+      document.getElementById("used-label").textContent = G.formatPercent(shot.usedPercent);
+      document.getElementById("used").value = String(state.used);
+      document.getElementById("meter-fill").style.width = shot.usedPercent + "%";
+      document.getElementById("meter").classList.toggle("ahead", shot.aheadOfEvenPace);
+      document.getElementById("reset-readout").textContent = formatUtc(Date.parse(shot.resetsAt));
+      document.getElementById("until-readout").textContent = G.humanRemaining(shot.timeUntilResetMs);
+      document.getElementById("elapsed-readout").textContent = G.formatPercent(shot.weekElapsedPercent);
+      document.getElementById("asof").value = String(Math.round((state.asOfMs - PERIOD_START) / 60000));
+      document.getElementById("asof-label").textContent = formatUtc(state.asOfMs);
+      const pace = document.getElementById("pace-note");
+      pace.className = "pace-note " + (shot.aheadOfEvenPace ? "ahead" : "even");
+      pace.textContent = shot.aheadOfEvenPace
+        ? "Ahead of even pace. Used " + G.formatPercent(shot.usedPercent) + " and the week is " + G.formatPercent(shot.weekElapsedPercent) + " elapsed. Optional pace holds skip. Essential routines with no gate still fire."
+        : "At or behind even pace. Used " + G.formatPercent(shot.usedPercent) + " and the week is " + G.formatPercent(shot.weekElapsedPercent) + " elapsed.";
+      document.getElementById("json").textContent = JSON.stringify({
+        kind: shot.kind,
+        draft: shot.draft,
+        matches: shot.matches,
+        pool: shot.pool,
+        usedPercent: shot.usedPercent,
+        resetsAt: shot.resetsAt,
+        asOf: shot.asOf,
+        timeUntilReset: shot.timeUntilReset,
+        weekElapsedPercent: shot.weekElapsedPercent,
+        aheadOfEvenPace: shot.aheadOfEvenPace
+      }, null, 2);
+      document.querySelectorAll(".routine").forEach((article) => {
+        const preview = article.querySelector("[data-preview]");
+        const config = readConfig(article);
+        if (config.error) {
+          preview.className = "preview skip";
+          preview.textContent = config.error;
+          return;
+        }
+        const result = G.evaluateRoutine(config, shot);
+        preview.className = "preview " + result.decision;
+        preview.textContent = result.decision === "skip"
+          ? "If it fired now: Skipped. Not started. " + result.reason
+          : "If it fired now: Started. " + result.reason;
+      });
+      renderAlerts();
+    }
+
+    function renderAlerts() {
+      const list = document.getElementById("alerts");
+      list.replaceChildren();
+      if (state.alerts.length === 0) {
+        const li = document.createElement("li");
+        li.className = "empty";
+        li.textContent = "No threshold crossed this week.";
+        list.appendChild(li);
+      } else {
+        state.alerts.forEach((alert) => {
+          const li = document.createElement("li");
+          const title = document.createElement("strong");
+          title.textContent = "Weekly usage crossed " + alert.threshold + "%.";
+          const body = document.createElement("p");
+          body.textContent = "Seen at " + G.formatPercent(alert.usedPercentSeen) + " on " + formatUtc(Date.parse(alert.at)) + ". Delivered once for this crossing. Further runs while usage stays at or above " + alert.threshold + "% do not send it again.";
+          li.append(title, body);
+          list.appendChild(li);
+        });
+      }
+      const tally = enabledThresholds().map((t) => {
+        const deliveries = state.latches[String(t)] ? state.latches[String(t)].deliveries.length : 0;
+        return t + "%: " + deliveries + " alert" + (deliveries === 1 ? "" : "s") + ", " + state.firesAtOrAbove[t] + " due check" + (state.firesAtOrAbove[t] === 1 ? "" : "s") + " while at or above it";
+      });
+      document.getElementById("alert-tally").textContent = tally.join(" · ");
+      document.getElementById("count-start").textContent = String(state.starts);
+      document.getElementById("count-skip").textContent = String(state.skips);
+    }
+
+    function appendHistory(article, result) {
+      const list = article.querySelector("[data-history]");
+      const empty = list.querySelector(".empty");
+      if (empty) empty.remove();
+      const li = document.createElement("li");
+      li.className = result.decision;
+      const top = document.createElement("div");
+      top.className = "row-top";
+      const title = document.createElement("strong");
+      title.textContent = result.decision === "skip" ? "Skipped" : "Started";
+      const time = document.createElement("time");
+      time.dateTime = result.asOf;
+      time.textContent = formatUtc(Date.parse(result.asOf));
+      top.append(title, time);
+      const reason = document.createElement("p");
+      reason.textContent = result.reason;
+      const meta = document.createElement("p");
+      meta.className = "meta";
+      meta.textContent = result.decision === "skip"
+        ? "Not started. Usage seen " + G.formatPercent(result.usedPercentSeen) + ". Resets " + formatUtc(Date.parse(result.resetsAt)) + " (" + result.timeUntilReset + ")."
+        : "Run started. On the real product this spend would hit weekly usage. Usage seen " + G.formatPercent(result.usedPercentSeen) + ".";
+      li.append(top, reason, meta);
+      list.prepend(li);
+    }
+
+    function ensureEmpty(article) {
+      const list = article.querySelector("[data-history]");
+      if (list.children.length) return;
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "No runs yet.";
+      list.appendChild(li);
+    }
+
+    function fireAll() {
+      const shot = snapshot();
+      document.querySelectorAll(".routine").forEach((article) => {
+        const config = readConfig(article);
+        if (config.error) return;
+        const result = G.evaluateRoutine(config, shot);
+        appendHistory(article, result);
+        if (result.decision === "skip") state.skips += 1;
+        else state.starts += 1;
+        enabledThresholds().forEach((t) => {
+          if (shot.usedPercent >= t) state.firesAtOrAbove[t] += 1;
+        });
+      });
+      renderUsage();
+    }
+
+    function applyMoment(moment) {
+      state.asOfMs = Date.parse(moment.asOf);
+      setUsed(moment.used);
+      fireAll();
+    }
+
+    function clearHistory() {
+      state.alerts = [];
+      state.firesAtOrAbove = { 50: 0, 75: 0, 90: 0 };
+      state.starts = 0;
+      state.skips = 0;
+      state.moment = 0;
+      state.latches = G.freshLatches([50, 75, 90], state.used);
+      document.querySelectorAll(".routine").forEach((article) => {
+        article.querySelector("[data-history]").replaceChildren();
+        ensureEmpty(article);
+      });
+      renderUsage();
+    }
+
+    function replay() {
+      state.used = 8;
+      state.asOfMs = PERIOD_START + 60 * 60 * 1000;
+      clearHistory();
+      MOMENTS.forEach(applyMoment);
+      state.moment = MOMENTS.length;
+    }
+
+    document.getElementById("used").addEventListener("input", (event) => {
+      setUsed(Number(event.target.value));
+      renderUsage();
+    });
+    document.getElementById("asof").addEventListener("input", (event) => {
+      state.asOfMs = PERIOD_START + Number(event.target.value) * 60000;
+      renderUsage();
+    });
+    document.getElementById("fire").addEventListener("click", fireAll);
+    document.getElementById("play").addEventListener("click", () => {
+      if (state.moment >= MOMENTS.length) state.moment = 0;
+      applyMoment(MOMENTS[state.moment]);
+      state.moment += 1;
+    });
+    document.getElementById("replay").addEventListener("click", replay);
+    document.getElementById("clear").addEventListener("click", clearHistory);
+    document.getElementById("routines").addEventListener("change", (event) => {
+      const article = event.target.closest(".routine");
+      if (article) syncGateInputs(article);
+      renderUsage();
+    });
+    document.getElementById("alert-toggles").addEventListener("change", (event) => {
+      const box = event.target;
+      const threshold = Number(box.dataset.threshold);
+      if (box.checked && !state.latches[String(threshold)]) {
+        state.latches[String(threshold)] = {
+          threshold: threshold,
+          armed: state.used < threshold,
+          deliveries: []
+        };
+      }
+      if (box.checked) {
+        state.latches[String(threshold)].armed = state.used < threshold;
+      }
+      renderUsage();
+    });
+
+    document.querySelectorAll(".routine").forEach((article) => {
+      syncGateInputs(article);
+      ensureEmpty(article);
+    });
+    renderUsage();
+  </script>
+</body>
+</html>
